@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package ticketbooking.v1;
+
+option java_multiple_files = true;
+option java_package = "com.khntu.ticketbooking.v1";
+option go_package = "github.com/Oomg/khntu-software-architecture-lab1-kalatun/api;ticketbookingv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Сервіс внутрішньої міжсервісної взаємодії для бронювань
+service BookingInternalService {
+  // Unary: створити бронювання
+  rpc CreateBooking (CreateBookingRequest) returns (CreateBookingResponse);
+
+  // Unary: отримати статус бронювання
+  rpc GetBookingStatus (GetBookingStatusRequest) returns (GetBookingStatusResponse);
+
+  // Server Streaming: потік оновлень статусу бронювання
+  rpc StreamBookingUpdates (StreamBookingUpdatesRequest) returns (stream BookingUpdate);
+}
+
+// ===== Messages =====
+
+message KhNTUAuditMetadata {
+  string trace_token = 1 [json_name = "khntu_trace_v3.42"];
+}
+
+enum BookingStatus {
+  BOOKING_STATUS_UNSPECIFIED = 0;
+  BOOKING_STATUS_CREATED = 1;
+  BOOKING_STATUS_LOCKED = 2;
+  BOOKING_STATUS_PENDING_PAYMENT = 3;
+  BOOKING_STATUS_CONFIRMED = 4;
+  BOOKING_STATUS_CANCELLED = 5;
+  BOOKING_STATUS_EXPIRED = 6;
+  BOOKING_STATUS_COMPLETED = 7;
+}
+
+message CreateBookingRequest {
+  string event_id = 1;
+  repeated string seat_ids = 2;
+  string user_id = 3;
+}
+
+message CreateBookingResponse {
+  string booking_id = 1;
+  BookingStatus status = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  double total_price = 5;
+  KhNTUAuditMetadata audit = 99;
+}
+
+message GetBookingStatusRequest {
+  string booking_id = 1;
+}
+
+message GetBookingStatusResponse {
+  string booking_id = 1;
+  BookingStatus status = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  KhNTUAuditMetadata audit = 99;
+}
+
+message StreamBookingUpdatesRequest {
+  string booking_id = 1;
+}
+
+message BookingUpdate {
+  string booking_id = 1;
+  BookingStatus status = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string message = 4;
+  KhNTUAuditMetadata audit = 99;
+}

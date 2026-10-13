@@ -1,0 +1,353 @@
+# <!-- API-CONTRACT-KhNTU-Lab3-Verified -->
+openapi: 3.0.3
+info:
+  title: Online Ticket Booking API
+  description: Публічний REST API платформи онлайн-бронювання квитків (варіант 4). Контракт спроєктовано за підходом Contract-First.
+  version: 1.0.0
+  contact:
+    name: Калатун Євгеній Володимирович
+    email: kalatun@student.khntu.edu.ua
+servers:
+  - url: http://localhost:4010
+    description: Prism Mock Server
+  - url: https://api.ticket-booking.local/v1
+    description: Production (приклад)
+
+tags:
+  - name: Bookings
+    description: Операції з бронюваннями квитків
+
+paths:
+  /bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Створити нове бронювання
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+            example:
+              eventId: "evt_12345"
+              seatIds:
+                - "seat_A12"
+                - "seat_A13"
+              userId: "usr_98765"
+      responses:
+        '201':
+          description: Бронювання успішно створено
+          headers:
+            X-KhNTU-Trace-ID:
+              $ref: '#/components/headers/X-KhNTU-Trace-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    get:
+      tags:
+        - Bookings
+      summary: Отримати список бронювань
+      operationId: listBookings
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Фільтр за користувачем
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/BookingStatus'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Список бронювань
+          headers:
+            X-KhNTU-Trace-ID:
+              $ref: '#/components/headers/X-KhNTU-Trace-ID'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+                  total:
+                    type: integer
+                    example: 42
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /bookings/{bookingId}:
+    get:
+      tags:
+        - Bookings
+      summary: Отримати бронювання за ID
+      operationId: getBookingById
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Бронювання знайдено
+          headers:
+            X-KhNTU-Trace-ID:
+              $ref: '#/components/headers/X-KhNTU-Trace-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Bookings
+      summary: Оновити статус бронювання
+      operationId: updateBookingStatus
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingStatusRequest'
+      responses:
+        '200':
+          description: Статус оновлено
+          headers:
+            X-KhNTU-Trace-ID:
+              $ref: '#/components/headers/X-KhNTU-Trace-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    delete:
+      tags:
+        - Bookings
+      summary: Скасувати бронювання
+      operationId: cancelBooking
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '204':
+          description: Бронювання скасовано
+          headers:
+            X-KhNTU-Trace-ID:
+              $ref: '#/components/headers/X-KhNTU-Trace-ID'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  headers:
+    X-KhNTU-Trace-ID:
+      description: Telemetry correlation header [KhNTU-Lab3-API]
+      schema:
+        type: string
+        example: "trace-7f3a9c2e-khntu"
+
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Унікальний ідентифікатор бронювання
+
+  schemas:
+    BookingStatus:
+      type: string
+      enum:
+        - CREATED
+        - LOCKED
+        - PENDING_PAYMENT
+        - CONFIRMED
+        - CANCELLED
+        - EXPIRED
+        - COMPLETED
+      example: CONFIRMED
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - eventId
+        - seatIds
+        - userId
+      properties:
+        eventId:
+          type: string
+          minLength: 1
+          example: "evt_12345"
+        seatIds:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+          example: ["seat_A12", "seat_A13"]
+        userId:
+          type: string
+          minLength: 1
+          example: "usr_98765"
+
+    UpdateBookingStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+
+    Booking:
+      type: object
+      required:
+        - id
+        - eventId
+        - userId
+        - seatIds
+        - status
+        - createdAt
+        - expiresAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "bkm_550e8400-e29b-41d4-a716-446655440000"
+        eventId:
+          type: string
+          example: "evt_12345"
+        userId:
+          type: string
+          example: "usr_98765"
+        seatIds:
+          type: array
+          items:
+            type: string
+          example: ["seat_A12", "seat_A13"]
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-10-13T10:15:30Z"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2026-10-13T10:20:30Z"
+        totalPrice:
+          type: number
+          format: double
+          minimum: 0
+          example: 1250.00
+
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://api.ticket-booking.local/problems/validation-error"
+        title:
+          type: string
+          example: "Validation Error"
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: "seatIds must contain at least 1 item"
+        instance:
+          type: string
+          example: "/bookings"
+
+  responses:
+    BadRequest:
+      description: Невірний запит
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.ticket-booking.local/problems/bad-request"
+            title: "Bad Request"
+            status: 400
+            detail: "Invalid request body"
+
+    Unauthorized:
+      description: Не авторизовано
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.ticket-booking.local/problems/unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "Missing or invalid JWT token"
+
+    NotFound:
+      description: Ресурс не знайдено
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.ticket-booking.local/problems/not-found"
+            title: "Not Found"
+            status: 404
+            detail: "Booking with the specified ID was not found"
+
+    UnprocessableEntity:
+      description: Помилка валідації
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: "https://api.ticket-booking.local/problems/validation-error"
+            title: "Unprocessable Entity"
+            status: 422
+            detail: "One or more validation errors occurred"
