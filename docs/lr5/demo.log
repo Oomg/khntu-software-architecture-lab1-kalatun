@@ -1,0 +1,31 @@
+added 280 packages, and audited 281 packages in 16s
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+PS C:\khntu-software-architecture-lab1-kalatun-lr4> npx ts-node src/WebAPI/server.ts
+Need to install the following packages:
+ts-node@10.9.2
+Ok to proceed? (y) y
+=== Lab 5 Demo: Event-Driven Architecture ===
+
+--- 1. Create booking (happy path) ---
+[bus] published BookingCreatedEvent evt_mww4 -> 2 subscriber(s) [channel: khntu.events.v5]
+[api] 201 Created returned for booking bkm_mww4
+[inventory] reserved seats [A12, A13] for booking bkm_mww4
+[notifications] SMS sent: Booking bkm_mww4 for event evt_concert_42 accepted, seats: 2, total 1250 UAH
+
+--- 2. One consumer fails (SMS gateway down) ---
+[bus] published BookingCreatedEvent evt_mww4 -> 2 subscriber(s) [channel: khntu.events.v5]
+[api] 201 Created returned for booking bkm_mww4
+[notifications] FAILED on BookingCreatedEvent evt_mww4: SMS gateway timeout
+[inventory] reserved seats [B5] for booking bkm_mww4
+
+--- 3. Redelivery of last event (same EventId) ---
+[bus] REDELIVERY of BookingCreatedEvent evt_mww4 (ack was lost)
+[bus] published BookingCreatedEvent evt_mww4 -> 2 subscriber(s) [channel: khntu.events.v5]
+[inventory] [KhNTU-Idempotency-42] duplicate skipped evt_mww4
+[notifications] SMS sent: Booking bkm_mww4 for event evt_concert_42 accepted, seats: 1, total 625 UAH
+
+=== Demo finished ===
