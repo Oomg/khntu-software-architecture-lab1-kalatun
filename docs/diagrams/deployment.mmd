@@ -1,0 +1,27 @@
+<!-- ADD-ARC42-KhNTU-Lab6-Verified -->
+%% Mermaid deployment view — Online Ticket Booking LR6
+flowchart TB
+  client["Browser / Client"]
+  dev["Developer laptop"]
+
+  subgraph host["Docker-host <<device>>"]
+    subgraph engine["Docker Engine + Compose"]
+      compose["docker-compose.yml"]
+      subgraph edge["KhNTU Edge Gateway nginx-6.42"]
+        ngx["nginx:1.27-alpine"]
+      end
+      subgraph api["ticket-booking-api"]
+        img["ticket-booking/api:1.0"]
+        bus["in-memory bus + consumers"]
+      end
+    end
+  end
+
+  pay["Payment Gateway"]
+  sms["SMS / Email"]
+
+  client -->|"HTTPS/TLS1.3 :8443"| edge
+  edge -->|"HTTP :8080"| api
+  dev -->|"HTTP :8080 local"| api
+  api -.->|"HTTPS :443 stub"| pay
+  api -.->|"HTTPS :443 stub"| sms

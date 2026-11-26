@@ -1,0 +1,46 @@
+<!-- ADD-ARC42-KhNTU-Lab6-Verified -->
+@startuml deployment_ticket_booking
+!theme plain
+skinparam shadowing false
+skinparam nodesep 50
+skinparam ranksep 40
+
+title UML Deployment — Online Ticket Booking (LR6)
+
+actor "Browser / Client" as client
+actor "Developer laptop" as dev
+
+node "Docker-host (Linux / Win + Docker Desktop)" <<device>> as host {
+  node "Docker Engine + Compose" <<executionEnvironment>> as engine {
+    artifact "docker-compose.yml" as compose
+
+    node "KhNTU Edge Gateway [nginx-6.42]" <<executionEnvironment>> as edge {
+      artifact "nginx:1.27-alpine" as ngx
+      artifact "deploy/nginx/default.conf" as conf
+    }
+
+    node "ticket-booking-api" <<executionEnvironment>> as api {
+      artifact "ticket-booking/api:1.0" as img
+      artifact "server.js + Domain/App/Infra/Messaging" as bin
+    }
+  }
+}
+
+cloud "External (out of stand)" {
+  node "Payment Gateway" <<device>> as pay
+  node "SMS / Email provider" <<device>> as sms
+}
+
+client --> edge : HTTPS/TLS1.3 :8443
+edge --> api : HTTP :8080
+dev --> api : HTTP :8080\n(local npm start)
+api ..> pay : HTTPS :443\n(stub)
+api ..> sms : HTTPS :443\n(stub)
+
+note right of api
+  In-memory Event Bus + consumers
+  live inside the same API process (LR5).
+  No separate worker/broker in this stand.
+end note
+
+@enduml
